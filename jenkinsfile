@@ -1,0 +1,41 @@
+pipeline {
+    agent any
+    stages {
+        stage("Copying") {
+            steps {
+                script {
+                    echo "Copying necessary files"
+
+                    sshagent(['Ansible-ec2']) {
+                        sh "scp -o StrictHostKeyChecking=no Ansible/* ec2-user@3.8.159.226:/home/ec2-user/"
+                        
+                        withCredentials([sshUserPrivateKey(credentialsId: 'Ansible-ec2', keyFileVariable: 'keyfile', usernameVariable: 'user')]) {
+                            sh """
+
+                            # Check if ssh-key.pem already exists
+                            if ssh ec2-user@3.8.159.226 stat /home/ec2-user/ssh-key.pem \\>/dev/null 2\\>\\&1; then
+                                # If it exists, remove it or choose a different filename
+                                ssh ec2-user@3.8.159.226 rm /home/ec2-user/ssh-key.pem
+                            fi
+                            scp -o StrictHostKeyChecking=no \${keyfile} ec2-user@3.8.159.226:/home/ec2-user/ssh-key.pem
+                            """
+                        }
+                    }  
+                }
+            }
+        }
+        stage("Execute ansible playbook") {
+            steps {
+                script {
+                    echo "Execute ansible playbook"
+                    
+                    sshagent(['Ansible-ec2']) {
+
+                        // used this command with "-l tags_Name_Ansible_remote" to execute playbook only this group name servers
+                        sh "ssh -o StrictHostKeyChecking=no ec2-user@3.8.159.226 ansible-playbook Docker-deployment.yaml -l tags_Name_Ansible_remote"
+                    }
+                }
+            }
+        }
+    }
+}

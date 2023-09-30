@@ -1,0 +1,97 @@
+---
+
+- name: Ensure tasks run only on app servers
+  hosts: "3.8.159.226"
+  tasks:
+    - name: Example task
+      debug:
+        msg: "This is executed on {{ ansible_hostname }}"
+      when: "ansible_hostname not in groups['ansible']"
+
+    
+- name: Install docker
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install docker
+      dnf:
+        name:
+        - docker
+        - python3-pip
+        update_cache: yes
+        state: present
+
+
+
+
+     
+
+    
+- name: Install docker-compose
+  hosts: all #Dynamic hosts
+  become: yes
+  tasks: 
+    - name: Install docker-compose
+      get_url:
+        url: https://github.com/docker/compose/releases/download/v2.20.3/docker-compose-linux-{{lookup('pipe', 'uname -m')}} #used lookup to populate the data  
+        dest: /usr/local/bin/docker-compose
+        mode: +x
+
+- name: Start Docker daemon
+  hosts: all
+  become: yes
+  tasks: 
+    - name: start docker daemon
+      systemd:
+         name: docker
+         state: started
+
+    
+        
+
+               
+- name: Add ec2-user to docker group
+  hosts: all
+  become: yes
+  tasks: 
+    - name: Add ec2-user to docker group
+      user:
+        name: ec2-user
+        groups: docker
+        append: yes # used to add a new user to an existing groups 
+    - name: Reset ec2 server connection
+      meta: reset_connection # used to reconnect the server session
+
+- name: Start docker container
+  hosts: all
+  vars_files:
+    - project-vars
+  tasks:
+    
+    
+
+    - name: Install docker python module     
+      pip:
+        name: 
+         - docker
+         - docker-compose 
+
+    - name: Start docker container
+      copy:
+        src: ~/docker-compose.yaml
+        dest: /home/ec2-user/docker-compose.yaml
+
+    - name: Docker login
+      docker_login:
+        registry_url: https://index.docker.io/v1/
+        username: saad324
+        password: "{{docker_password}}"
+
+          
+- name: start container from Docker-compose
+  hosts: all
+  tasks:
+    - name: start container from Docker-compose
+      docker_compose:
+        project_src: /home/ec2-user
+        state: present 
