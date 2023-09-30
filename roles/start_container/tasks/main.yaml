@@ -1,0 +1,33 @@
+- name: Install docker-compose
+  get_url:
+       url: https://github.com/docker/compose/releases/download/v2.20.3/docker-compose-linux-{{lookup('pipe', 'uname -m')}} #used lookup to populate the data  
+       dest: /usr/local/bin/docker-compose
+       mode: +x
+
+- name: start docker daemon
+  systemd:
+   name: docker           
+   state: started
+
+- name: Install docker python module     
+  pip:
+      name: 
+       - docker
+       - docker-compose
+
+- name: Start docker container
+  copy:
+       src: ~/docker-compose.yaml
+       dest: /home/ec2-user/docker-compose.yaml
+
+- name: Docker login
+  docker_login:
+      registry_url: "{{docker_registory}}"
+      username: "{{docker_username}}"
+      password: "{{docker_pass}}"
+        
+
+- name: start container from Docker-compose
+  docker_compose:
+      project_src: /home/ec2-user
+      state: present              

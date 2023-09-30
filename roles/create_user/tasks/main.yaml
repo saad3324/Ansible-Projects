@@ -1,0 +1,7 @@
+- name: Create New linux user
+  user:
+      name: ec2-user
+      groups: "{{ user_groups }}"
+      append: yes # used to add a new user to an existing groups 
+- name: Reset ec2 server connection
+  meta: reset_connection # used to reconnect the server session

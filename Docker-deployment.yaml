@@ -1,0 +1,28 @@
+---
+    
+- name: Install docker
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install docker
+      dnf:
+        name:
+        - docker
+        - python3-pip
+        update_cache: yes
+        state: present
+
+    
+- name: Start container
+  hosts: all #Dynamic hosts
+  become: yes
+  roles:
+    - start_container 
+                 
+- name: Add New user
+  hosts: all
+  become: yes
+  roles:
+    - create_user 
+
+     
