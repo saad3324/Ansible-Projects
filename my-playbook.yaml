@@ -1,0 +1,44 @@
+---
+- name: install node and npm
+  hosts: 134.122.110.44
+  tasks:
+    - name: update apt and repo
+      apt: update_cache=true force_apt_get=true cache_valid_time=3600
+    - name: install node and npm
+      apt: 
+         pkg:
+         - nodejs
+         - npm
+
+- name: create new linux user
+  hosts: 134.122.110.44
+  tasks:
+    - name: create linux user
+      user:
+        name: Ansible
+        comment: Ansible admin
+        group: admin
+      
+
+- name: Deploy node js app
+  hosts: 134.122.110.44
+  become: true
+  become_user: Ansible
+  tasks:
+    - name: copy and unarchive  file to server
+      unarchive : 
+        src: /home/saad/simple-nodejs-master/nodejs-app-1.0.0.tgz
+        dest: /home/Ansible
+    - name: install dependencies
+      npm:
+        path: /home/Ansible/package
+    - name: start the app
+      command:
+        chdir: /home/Ansible/package/app
+        cmd: node server
+      async: 1000
+      poll: 0
+    - name: Ensure app is running
+      shell: ps aux | grep node
+      register: app_status
+    - debug: msg={{app_status.stdout_lines}}
